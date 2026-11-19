@@ -1,0 +1,254 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Usman Abubakar | E-commerce Store</title>
+  <style>
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: Arial, sans-serif;
+      background: #f4f6f9;
+      color: #1f2937;
+    }
+    header {
+      background: #174a8b;
+      color: white;
+      padding: 25px 6%;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 15px;
+    }
+    header h1 { margin: 0 0 7px; font-size: 25px; }
+    header p { margin: 0; opacity: .85; }
+    .cart-count {
+      background: white;
+      color: #174a8b;
+      padding: 12px 18px;
+      border-radius: 25px;
+      font-weight: bold;
+    }
+    main { max-width: 1100px; margin: 35px auto; padding: 0 20px; }
+    .layout {
+      display: grid;
+      grid-template-columns: 2fr 1fr;
+      gap: 25px;
+      align-items: start;
+    }
+    .products {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+      gap: 18px;
+    }
+    .card, .cart {
+      background: white;
+      border-radius: 12px;
+      padding: 20px;
+      box-shadow: 0 2px 8px rgba(0,0,0,.07);
+    }
+    .product-icon { font-size: 48px; margin-bottom: 12px; }
+    .card h3 { margin: 5px 0 10px; }
+    .price { color: #174a8b; font-weight: bold; font-size: 20px; }
+    button {
+      border: 0;
+      border-radius: 7px;
+      padding: 10px 14px;
+      cursor: pointer;
+      font-weight: bold;
+    }
+    .add {
+      background: #174a8b;
+      color: white;
+      width: 100%;
+      margin-top: 14px;
+    }
+    button:hover { opacity: .85; }
+    .cart h2 { margin-top: 0; }
+    .cart-item {
+      border-bottom: 1px solid #e5e7eb;
+      padding: 13px 0;
+    }
+    .cart-item strong { display: block; margin-bottom: 8px; }
+    .quantity {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .quantity button { background: #e5e7eb; }
+    .remove { color: #b91c1c; background: transparent; padding: 5px; }
+    .total {
+      display: flex;
+      justify-content: space-between;
+      font-size: 20px;
+      font-weight: bold;
+      margin-top: 20px;
+    }
+    .clear {
+      background: #fee2e2;
+      color: #991b1b;
+      width: 100%;
+      margin-top: 15px;
+    }
+    .empty { color: #6b7280; }
+    footer { text-align: center; padding: 30px; color: #6b7280; }
+    @media(max-width: 750px) {
+      .layout { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <div>
+      <h1>Usman Abubakar E-commerce Store</h1>
+      <p>Quality products at great prices</p>
+    </div>
+    <div class="cart-count">🛒 Cart: <span id="cart-count">0</span></div>
+  </header>
+
+  <main>
+    <h2>Featured Products</h2>
+    <div class="layout">
+      <section class="products" id="products"></section>
+
+      <aside class="cart">
+        <h2>Your Shopping Cart</h2>
+        <div id="cart-items"><p class="empty">Your cart is empty.</p></div>
+        <div class="total">
+          <span>Total</span>
+          <span id="total">£0.00</span>
+        </div>
+        <button class="clear" onclick="clearCart()">Clear cart</button>
+      </aside>
+    </div>
+  </main>
+
+  <footer>
+    © Usman Abubakar — E-commerce project running on Amazon EKS
+  </footer>
+
+  <script>
+    const productIcons = {
+      1: "💻",
+      2: "📱",
+      3: "⌨️",
+      4: "🖥️"
+    };
+
+    let products = [];
+
+    let cart = JSON.parse(localStorage.getItem("ecommerce-cart") || "[]");
+
+    function money(amount) {
+      return new Intl.NumberFormat("en-GB", {
+        style: "currency",
+        currency: "GBP"
+      }).format(amount);
+    }
+
+    function saveCart() {
+      localStorage.setItem("ecommerce-cart", JSON.stringify(cart));
+      renderCart();
+    }
+
+    async function loadProducts() {
+      try {
+        const response = await fetch("/api/products");
+
+        if (!response.ok) {
+          throw new Error("Could not load products");
+        }
+
+        const apiProducts = await response.json();
+
+        products = apiProducts.map(product => ({
+          ...product,
+          icon: productIcons[product.id] || "🛍️"
+        }));
+
+        renderProducts();
+      } catch (error) {
+        document.getElementById("products").innerHTML =
+          "<p>Unable to load products. Please try again later.</p>";
+        console.error(error);
+      }
+    }
+
+    function renderProducts() {
+      document.getElementById("products").innerHTML = products.map(product => `
+        <article class="card">
+          <div class="product-icon">${product.icon}</div>
+          <h3>${product.name}</h3>
+          <div class="price">${money(product.price)}</div>
+          <button class="add" onclick="addToCart(${product.id})">
+            Add to cart
+          </button>
+        </article>
+      `).join("");
+    }
+
+    function addToCart(id) {
+      const item = cart.find(product => product.id === id);
+      if (item) {
+        item.quantity++;
+      } else {
+        cart.push({ ...products.find(product => product.id === id), quantity: 1 });
+      }
+      saveCart();
+    }
+
+    function changeQuantity(id, amount) {
+      const item = cart.find(product => product.id === id);
+      if (!item) return;
+      item.quantity += amount;
+      if (item.quantity <= 0) {
+        cart = cart.filter(product => product.id !== id);
+      }
+      saveCart();
+    }
+
+    function removeItem(id) {
+      cart = cart.filter(product => product.id !== id);
+      saveCart();
+    }
+
+    function clearCart() {
+      cart = [];
+      saveCart();
+    }
+
+    function renderCart() {
+      const container = document.getElementById("cart-items");
+      const count = cart.reduce((sum, item) => sum + item.quantity, 0);
+      const total = cart.reduce((sum, item) => sum + item.price * item.quantity, 0);
+
+      document.getElementById("cart-count").textContent = count;
+      document.getElementById("total").textContent = money(total);
+
+      if (cart.length === 0) {
+        container.innerHTML = '<p class="empty">Your cart is empty.</p>';
+        return;
+      }
+
+      container.innerHTML = cart.map(item => `
+        <div class="cart-item">
+          <strong>${item.icon} ${item.name}</strong>
+          <div>${money(item.price)} each</div>
+          <div class="quantity">
+            <button onclick="changeQuantity(${item.id}, -1)">−</button>
+            <span>${item.quantity}</span>
+            <button onclick="changeQuantity(${item.id}, 1)">+</button>
+            <button class="remove" onclick="removeItem(${item.id})">Remove</button>
+          </div>
+          <div><strong>${money(item.price * item.quantity)}</strong></div>
+        </div>
+      `).join("");
+    }
+
+    loadProducts();
+    renderCart();
+  </script>
+</body>
+</html>
