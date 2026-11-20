@@ -26,3 +26,8 @@ node_modules/
 .aws/
 kubeconfig
 *.tfplan
+
+# Local recovery backups - never commit
+/backups/
+/frontend/backups/
+/frontend/backups-*
