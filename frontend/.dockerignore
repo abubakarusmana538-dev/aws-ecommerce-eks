@@ -1,0 +1,9 @@
+node_modules
+dist
+backups/
+backups-*
+.env
+.env.*
+*.pem
+*.key
+.git
